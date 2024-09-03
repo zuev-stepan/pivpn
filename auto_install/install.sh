@@ -2308,7 +2308,7 @@ installWireGuard() {
 }
 
 installAmnezia() {
-  # manual install only
+  echo "manual install only"
 }
 
 askCustomProto() {
