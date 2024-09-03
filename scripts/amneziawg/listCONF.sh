@@ -34,4 +34,4 @@ printf "\e[1m::: Clients Summary :::\e[0m\n"
 cd /etc/amnezia/amneziawg || return
 
 echo "::: Disabled clients :::"
-grep '\[disabled\] ### begin' amn0.conf | sed 's/#//g; s/begin//'
+grep '\[disabled\] ### begin' wg0.conf | sed 's/#//g; s/begin//'

@@ -42,15 +42,15 @@ printf "=============================================\n"
 echo -e "::::  \e[4mServer configuration shown below\e[0m   ::::"
 
 cd /etc/amnezia/amneziawg/keys || exit
-cp ../amn0.conf ../amn0.tmp
+cp ../wg0.conf ../wg0.tmp
 
 # Replace every key in the server configuration with just its file name
 for k in *; do
-  sed "s#$(< "${k}")#${k}#" -i ../amn0.tmp
+  sed "s#$(< "${k}")#${k}#" -i ../wg0.tmp
 done
 
-cat ../amn0.tmp
-rm ../amn0.tmp
+cat ../wg0.tmp
+rm ../wg0.tmp
 
 printf "=============================================\n"
 echo -e "::::  \e[4mClient configuration shown below\e[0m   ::::"

@@ -203,7 +203,7 @@ echo "::: Client config generated"
   fi
 
   echo "### end ${CLIENT_NAME} ###"
-} >> amn0.conf
+} >> wg0.conf
 
 echo "::: Updated server config"
 
@@ -233,7 +233,7 @@ if [[ "${PLAT}" == 'Alpine' ]]; then
     err "::: Failed to reload AmneziaWG"
   fi
 else
-  if systemctl reload awg-quick@amn0; then
+  if systemctl reload awg-quick@wg0; then
     echo "::: AmneziaWG reloaded"
   else
     err "::: Failed to reload AmneziaWG"

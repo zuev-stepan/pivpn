@@ -123,7 +123,7 @@ for CLIENT_NAME in "${CLIENTS_TO_REMOVE[@]}"; do
       # Remove the peer section from the server config
       sed_pattern="/### begin ${CLIENT_NAME} ###/,"
       sed_pattern="${sed_pattern}/### end ${CLIENT_NAME} ###/d"
-      sed -e "${sed_pattern}" -i amn0.conf
+      sed -e "${sed_pattern}" -i wg0.conf
       echo "::: Updated server config"
 
       rm "configs/${CLIENT_NAME}.conf"
@@ -184,7 +184,7 @@ if [[ "${DELETED_COUNT}" -gt 0 ]]; then
       err "::: Failed to reload AmneziaWG"
     fi
   else
-    if systemctl reload awg-quick@amn0; then
+    if systemctl reload awg-quick@wg0; then
       echo "::: AmneziaWG reloaded"
     else
       err "::: Failed to reload AmneziaWG"

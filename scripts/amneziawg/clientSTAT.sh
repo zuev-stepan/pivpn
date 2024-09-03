@@ -25,7 +25,7 @@ hr() {
 }
 
 listClients() {
-  if DUMP="$(awg show amn0 dump)"; then
+  if DUMP="$(awg show wg0 dump)"; then
     DUMP="$(tail -n +2 <<< "${DUMP}")"
   else
     exit 1
@@ -77,7 +77,7 @@ listClients() {
   cd /etc/amnezia/amneziawg || return
 
   echo "::: Disabled clients :::"
-  grep '\[disabled\] ### begin' amn0.conf | sed 's/#//g; s/begin//'
+  grep '\[disabled\] ### begin' wg0.conf | sed 's/#//g; s/begin//'
 }
 
 ### Script

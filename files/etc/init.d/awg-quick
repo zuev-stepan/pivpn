@@ -2,7 +2,7 @@
 
 #################################################################################
 #	Filename:		files/etc/init.d/awg-quick   								#
-#	Purpose:		OpenRC service that starts WireGuard	        			#
+#	Purpose:		OpenRC service that starts AmneziaWG	        			#
 #	Authors:		Giulio Coa <34110430+giulioc008@users.noreply.github.com>	#
 #	License:		This file is licensed under the MIT.						#
 #################################################################################
@@ -15,9 +15,9 @@ depend() {
 }
 
 start() {
-    awg-quick up amn0
+    awg-quick up wg0
 }
 
 stop() {
-    awg-quick down amn0
+    awg-quick down wg0
 }

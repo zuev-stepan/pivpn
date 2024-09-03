@@ -2004,7 +2004,7 @@ setAmneziaDefaultVars() {
   # Since WireGuard only uses UDP, askCustomProto() is never
   # called so we set the protocol here.
   pivpnPROTO="udp"
-  pivpnDEV="amn0"
+  pivpnDEV="wg0"
 
   # Allow custom NET via unattend setupVARs file.
   # Use default if not provided.
@@ -3415,8 +3415,8 @@ confAmnezia() {
     ${SUDO} tar -czf "/etc/${AMNEZIAWG_BACKUP}" /etc/amnezia/amneziawg &> /dev/null
     umask "${CURRENT_UMASK}"
 
-    if [[ -f /etc/amnezia/amneziawg/amn0.conf ]]; then
-      ${SUDO} rm /etc/amnezia/amneziawg/amn0.conf
+    if [[ -f /etc/amnezia/amneziawg/wg0.conf ]]; then
+      ${SUDO} rm /etc/amnezia/amneziawg/wg0.conf
     fi
   else
     # If compiled from source, the amneziawg folder is not being created
@@ -3468,7 +3468,7 @@ confAmnezia() {
 
     echo "MTU = ${pivpnMTU}"
     echo "ListenPort = ${pivpnPORT}"
-  } | ${SUDO} tee /etc/amnezia/amneziawg/amn0.conf &> /dev/null
+  } | ${SUDO} tee /etc/amnezia/amneziawg/wg0.conf &> /dev/null
 
   echo "::: Server config generated."
 }
