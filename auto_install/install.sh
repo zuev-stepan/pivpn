@@ -3385,7 +3385,7 @@ confWireGuard() {
 }
 
 confAmnezia() {
-  # Reload job type is not yet available in wireguard-tools shipped with
+  # Reload job type is not yet available in amneziawg-tools shipped with
   # Ubuntu 20.04
   if [[ "${PLAT}" == 'Alpine' ]]; then
     echo '::: Adding awg-quick unit'
@@ -3394,36 +3394,36 @@ confAmnezia() {
       /etc/init.d/awg-quick
   else
     if ! grep -q 'ExecReload' /lib/systemd/system/awg-quick@.service; then
-      local wireguard_service_path
-      wireguard_service_path="${pivpnFilesDir}/files/etc/systemd/system"
-      wireguard_service_path="${wireguard_service_path}/awg-quick@.service.d"
-      wireguard_service_path="${wireguard_service_path}/override.conf"
+      local amneziawg_service_path
+      amneziawg_service_path="${pivpnFilesDir}/files/etc/systemd/system"
+      amneziawg_service_path="${amneziawg_service_path}/awg-quick@.service.d"
+      amneziawg_service_path="${amneziawg_service_path}/override.conf"
       echo "::: Adding additional reload job type for awg-quick unit"
       ${SUDO} install -Dm 644 \
-        "${wireguard_service_path}" \
+        "${amneziawg_service_path}" \
         /etc/systemd/system/awg-quick@.service.d/override.conf
       ${SUDO} systemctl daemon-reload
     fi
   fi
 
   if [[ -d /etc/amnezia/amneziawg ]]; then
-    # Backup the wireguard folder
-    WIREGUARD_BACKUP="wireguard_$(date +%Y-%m-%d-%H%M%S).tar.gz"
-    echo "::: Backing up the wireguard folder to /etc/${WIREGUARD_BACKUP}"
+    # Backup the amneziawg folder
+    AMNEZIAWG_BACKUP="amneziawg_$(date +%Y-%m-%d-%H%M%S).tar.gz"
+    echo "::: Backing up the amneziawg folder to /etc/${AMNEZIAWG_BACKUP}"
     CURRENT_UMASK="$(umask)"
     umask 0077
-    ${SUDO} tar -czf "/etc/${WIREGUARD_BACKUP}" /etc/amnezia/amneziawg &> /dev/null
+    ${SUDO} tar -czf "/etc/${AMNEZIAWG_BACKUP}" /etc/amnezia/amneziawg &> /dev/null
     umask "${CURRENT_UMASK}"
 
     if [[ -f /etc/amnezia/amneziawg/amn0.conf ]]; then
       ${SUDO} rm /etc/amnezia/amneziawg/amn0.conf
     fi
   else
-    # If compiled from source, the wireguard folder is not being created
+    # If compiled from source, the amneziawg folder is not being created
     ${SUDO} mkdir /etc/amnezia/amneziawg
   fi
 
-  # Ensure that only root is able to enter the wireguard folder
+  # Ensure that only root is able to enter the amneziawg folder
   ${SUDO} chown root:root /etc/amnezia/amneziawg
   ${SUDO} chmod 700 /etc/amnezia/amneziawg
 
@@ -4014,6 +4014,7 @@ writeConfigFiles() {
 }
 
 installScripts() {
+  # TODO: amnezia support
   # Ensure /opt exists (issue #607)
   ${SUDO} mkdir -p /opt
 
