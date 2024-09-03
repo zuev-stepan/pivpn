@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# PiVPN: Trivial OpenVPN or WireGuard setup and configuration
-# Easiest setup and mangement of OpenVPN or WireGuard on Raspberry Pi
+# PiVPN: Trivial OpenVPN or WireGuard or AmneziaWG setup and configuration
+# Easiest setup and mangement of OpenVPN or WireGuard or AmneziaWG on Raspberry Pi
 # https://pivpn.io
 # Heavily adapted from the pi-hole.net project and...
 # https://github.com/StarshipEngineer/OpenVPN-Setup/
@@ -11,7 +11,7 @@
 # Make sure you have `curl` installed
 
 ######## VARIABLES #########
-pivpnGitUrl="https://github.com/pivpn/pivpn.git"
+pivpnGitUrl="https://github.com/zuev-stepan/pivpn.git"
 # Uncomment to checkout a custom branch for local pivpn files
 #pivpnGitBranch="custombranchtocheckout"
 setupVarsFile="setupVars.conf"
@@ -278,6 +278,8 @@ checkExistingInstall() {
   # see which setup already exists
   if [[ -r "${setupConfigDir}/wireguard/${setupVarsFile}" ]]; then
     setupVars="${setupConfigDir}/wireguard/${setupVarsFile}"
+  elif [[ -r "${setupConfigDir}/amneziawg/${setupVarsFile}" ]]; then
+    setupVars="${setupConfigDir}/amneziawg/${setupVarsFile}"
   elif [[ -r "${setupConfigDir}/openvpn/${setupVarsFile}" ]]; then
     setupVars="${setupConfigDir}/openvpn/${setupVarsFile}"
   fi
@@ -833,7 +835,7 @@ welcomeDialogs() {
   if [[ "${runUnattended}" == 'true' ]]; then
     echo "::: PiVPN Automated Installer"
     echo -n "::: This installer will transform your ${PLAT} host into an "
-    echo "OpenVPN or WireGuard server!"
+    echo "OpenVPN or WireGuard or AmneziaWG server!"
     echo "::: Initiating network interface"
     return
   fi
@@ -843,7 +845,7 @@ welcomeDialogs() {
     --backtitle "Welcome" \
     --title "PiVPN Automated Installer" \
     --msgbox "This installer will transform your Raspberry Pi into an \
-OpenVPN or WireGuard server!" "${r}" "${c}"
+OpenVPN or WireGuard or AmneziaWG server!" "${r}" "${c}"
 
   # Explain the need for a static address
   whiptail \
@@ -1691,6 +1693,9 @@ installPiVPN() {
   elif [[ "${VPN}" == 'wireguard' ]]; then
     setWireguardDefaultVars
     installWireGuard
+  elif [[ "${VPN}" == 'amneziawg' ]]; then
+    setAmneziaDefaultVars
+    installAmnezia
   fi
 
   askCustomPort
@@ -1708,6 +1713,8 @@ installPiVPN() {
     confOVPN
   elif [[ "${VPN}" == 'wireguard' ]]; then
     confWireGuard
+  elif [[ "${VPN}" == 'amneziawg' ]]; then
+    confAmnezia
   fi
 
   confNetwork
@@ -1716,6 +1723,8 @@ installPiVPN() {
     confLogging
   elif [[ "${VPN}" == 'wireguard' ]]; then
     writeWireguardTempVarsFile
+  elif [[ "${VPN}" == 'amneziawg' ]]; then
+    writeAmneziaTempVarsFile
   fi
 
   writeVPNTempVarsFile
@@ -1991,6 +2000,73 @@ setWireguardDefaultVars() {
   CUSTOMIZE=0
 }
 
+setAmneziaDefaultVars() {
+  # Since WireGuard only uses UDP, askCustomProto() is never
+  # called so we set the protocol here.
+  pivpnPROTO="udp"
+  pivpnDEV="amn0"
+
+  # Allow custom NET via unattend setupVARs file.
+  # Use default if not provided.
+  if [[ -z "${pivpnNET}" ]]; then
+    echo "::: Generating random subnet in network 10.0.0.0/8..."
+    pivpnNET="$(generateRandomSubnet "10.0.0.0/8" "$subnetClass")"
+  fi
+
+  if [[ -z "${pivpnNET}" ]]; then
+    echo "::: Network 10.0.0.0/8 is unavailable, trying 172.16.0.0/12 next..."
+    pivpnNET="$(generateRandomSubnet "172.16.0.0/12" "$subnetClass")"
+  fi
+
+  if [[ -z "${pivpnNET}" ]]; then
+    echo "::: Network 172.16.0.0/12 is unavailable, trying 192.168.0.0/16 next..."
+    pivpnNET="$(generateRandomSubnet "192.168.0.0/16" "$subnetClass")"
+  fi
+
+  if [[ -z "${pivpnNET}" ]]; then
+    # This should not happen in practice
+    echo "::: Unable to generate a random subnet for PiVPN. Looks like all private networks are in use."
+    exit 1
+  fi
+
+  pivpnNETdec="$(dotIPv4ToDec "${pivpnNET}")"
+
+  vpnGwdec="$((pivpnNETdec + 1))"
+  vpnGw="$(decIPv4ToDot "${vpnGwdec}")"
+  vpnGwhex="$(decIPv4ToHex "${vpnGwdec}")"
+
+  if [[ "${pivpnenableipv6}" -eq 1 ]] \
+    && [[ -z "${pivpnNETv6}" ]]; then
+    pivpnNETv6="fd11:5ee:bad:c0de::"
+  fi
+
+  if [[ "${pivpnenableipv6}" -eq 1 ]]; then
+    vpnGwv6="${pivpnNETv6}${vpnGwhex}"
+  fi
+
+  # Allow custom allowed IPs via unattend setupVARs file.
+  # Use default if not provided.
+  if [[ -z "${ALLOWED_IPS}" ]]; then
+    ALLOWED_IPS="0.0.0.0/0"
+
+    # Forward all traffic through PiVPN (i.e. full-tunnel), may be modified by
+    # the user after the installation.
+    if [[ "${pivpnenableipv6}" -eq 1 ]] \
+      || [[ "${pivpnforceipv6route}" -eq 1 ]]; then
+      ALLOWED_IPS="${ALLOWED_IPS}, ::0/0"
+    fi
+  fi
+
+  # The default MTU should be fine for most users but we allow to set a
+  # custom MTU via unattend setupVARs file. Use default if not provided.
+  if [[ -z "${pivpnMTU}" ]]; then
+    # Using default Wireguard MTU
+    pivpnMTU="1420"
+  fi
+
+  CUSTOMIZE=0
+}
+
 writeVPNTempVarsFile() {
   {
     echo "pivpnDEV=${pivpnDEV}"
@@ -2021,6 +2097,20 @@ writeWireguardTempVarsFile() {
   } >> "${tempsetupVarsFile}"
 }
 
+writeAmneziaTempVarsFile() {
+  {
+    echo "pivpnPROTO=${pivpnPROTO}"
+    echo "pivpnMTU=${pivpnMTU}"
+
+    # Write PERSISTENTKEEPALIVE if provided via unattended file
+    # May also be added manually to /etc/pivpn/amneziawg/setupVars.conf
+    # post installation to be used for client profile generation
+    if [[ -n "${pivpnPERSISTENTKEEPALIVE}" ]]; then
+      echo "pivpnPERSISTENTKEEPALIVE=${pivpnPERSISTENTKEEPALIVE}"
+    fi
+  } >> "${tempsetupVarsFile}"
+}
+
 askWhichVPN() {
   if [[ "${runUnattended}" == 'true' ]]; then
     if [[ "${WIREGUARD_SUPPORT}" -eq 1 ]]; then
@@ -2032,10 +2122,12 @@ askWhichVPN() {
 
         if [[ "${VPN}" == "wireguard" ]]; then
           echo "::: WireGuard will be installed"
+        elif [[ "${VPN}" == "amneziawg" ]]; then
+          echo "::: AmneziaWG will be installed"
         elif [[ "${VPN}" == "openvpn" ]]; then
           echo "::: OpenVPN will be installed"
         else
-          err ":: ${VPN} is not a supported VPN protocol, please specify 'wireguard' or 'openvpn'"
+          err ":: ${VPN} is not a supported VPN protocol, please specify 'wireguard' or 'amneziawg' or 'openvpn'"
           exit 1
         fi
       fi
@@ -2070,8 +2162,9 @@ WireGuard is easier on battery than OpenVPN.
 OpenVPN is still available if you need the traditional, flexible, trusted \
 VPN protocol or if you need features like TCP and custom search domain.
 
-Choose a VPN (press space to select):" "${r}" "${c}" 2)
+Choose a VPN (press space to select):" "${r}" "${c}" 3)
       VPNChooseOptions=(WireGuard "" on
+        AmneziaWg "" off
         OpenVPN "" off)
 
       if VPN="$("${chooseVPNCmd[@]}" \
@@ -2214,6 +2307,10 @@ installWireGuard() {
   installDependentPackages PIVPN_DEPS[@]
 }
 
+installAmnezia() {
+  # manual install only
+}
+
 askCustomProto() {
   if [[ "${runUnattended}" == 'true' ]]; then
     if [[ -z "${pivpnPROTO}" ]]; then
@@ -2268,6 +2365,9 @@ askCustomPort() {
       if [[ "${VPN}" == "wireguard" ]]; then
         echo "::: No port specified, using the default port 51820"
         pivpnPORT=51820
+      elif [[ "${VPN}" == "amneziawg" ]]; then
+        echo "::: No port specified, using the default port 51820"
+        pivpnPORT=51820
       elif [[ "${VPN}" == "openvpn" ]]; then
         if [[ "${pivpnPROTO}" == "udp" ]]; then
           echo "::: No port specified, using the default port 1194"
@@ -2296,6 +2396,8 @@ askCustomPort() {
     portInvalid="Invalid"
 
     if [[ "${VPN}" == "wireguard" ]]; then
+      DEFAULT_PORT=51820
+    elif [[ "${VPN}" == "amneziawg" ]]; then
       DEFAULT_PORT=51820
     elif [[ "${VPN}" == "openvpn" ]]; then
       if [[ "${pivpnPROTO}" == "udp" ]]; then
@@ -3282,6 +3384,95 @@ confWireGuard() {
   echo "::: Server config generated."
 }
 
+confAmnezia() {
+  # Reload job type is not yet available in wireguard-tools shipped with
+  # Ubuntu 20.04
+  if [[ "${PLAT}" == 'Alpine' ]]; then
+    echo '::: Adding awg-quick unit'
+    ${SUDO} install -m 0755 \
+      "${pivpnFilesDir}/files/etc/init.d/awg-quick" \
+      /etc/init.d/awg-quick
+  else
+    if ! grep -q 'ExecReload' /lib/systemd/system/awg-quick@.service; then
+      local wireguard_service_path
+      wireguard_service_path="${pivpnFilesDir}/files/etc/systemd/system"
+      wireguard_service_path="${wireguard_service_path}/awg-quick@.service.d"
+      wireguard_service_path="${wireguard_service_path}/override.conf"
+      echo "::: Adding additional reload job type for awg-quick unit"
+      ${SUDO} install -Dm 644 \
+        "${wireguard_service_path}" \
+        /etc/systemd/system/awg-quick@.service.d/override.conf
+      ${SUDO} systemctl daemon-reload
+    fi
+  fi
+
+  if [[ -d /etc/amnezia/amneziawg ]]; then
+    # Backup the wireguard folder
+    WIREGUARD_BACKUP="wireguard_$(date +%Y-%m-%d-%H%M%S).tar.gz"
+    echo "::: Backing up the wireguard folder to /etc/${WIREGUARD_BACKUP}"
+    CURRENT_UMASK="$(umask)"
+    umask 0077
+    ${SUDO} tar -czf "/etc/${WIREGUARD_BACKUP}" /etc/amnezia/amneziawg &> /dev/null
+    umask "${CURRENT_UMASK}"
+
+    if [[ -f /etc/amnezia/amneziawg/amn0.conf ]]; then
+      ${SUDO} rm /etc/amnezia/amneziawg/amn0.conf
+    fi
+  else
+    # If compiled from source, the wireguard folder is not being created
+    ${SUDO} mkdir /etc/amnezia/amneziawg
+  fi
+
+  # Ensure that only root is able to enter the wireguard folder
+  ${SUDO} chown root:root /etc/amnezia/amneziawg
+  ${SUDO} chmod 700 /etc/amnezia/amneziawg
+
+  if [[ "${runUnattended}" == 'true' ]]; then
+    echo "::: The Server Keys will now be generated."
+  else
+    whiptail \
+      --title "Server Information" \
+      --msgbox "The Server Keys will now be generated." \
+      "${r}" \
+      "${c}"
+  fi
+
+  # Remove configs and keys folders to make space for a new server when
+  # using 'Repair' or 'Reconfigure' over an existing installation
+  ${SUDO} rm -rf /etc/amnezia/amneziawg/configs
+  ${SUDO} rm -rf /etc/amnezia/amneziawg/keys
+
+  ${SUDO} mkdir -p /etc/amnezia/amneziawg/configs
+  ${SUDO} touch /etc/amnezia/amneziawg/configs/clients.txt
+  ${SUDO} mkdir -p /etc/amnezia/amneziawg/keys
+
+  # Generate private key and derive public key from it
+  awg genkey \
+    | ${SUDO} tee /etc/amnezia/amneziawg/keys/server_priv &> /dev/null
+  ${SUDO} cat /etc/amnezia/amneziawg/keys/server_priv \
+    | awg pubkey \
+    | ${SUDO} tee /etc/amnezia/amneziawg/keys/server_pub &> /dev/null
+
+  echo "::: Server Keys have been generated."
+
+  {
+    echo '[Interface]'
+    echo "PrivateKey = $(${SUDO} cat /etc/amnezia/amneziawg/keys/server_priv)"
+    echo -n "Address = ${vpnGw}/${subnetClass}"
+
+    if [[ "${pivpnenableipv6}" -eq 1 ]]; then
+      echo ",${vpnGwv6}/${subnetClassv6}"
+    else
+      echo
+    fi
+
+    echo "MTU = ${pivpnMTU}"
+    echo "ListenPort = ${pivpnPORT}"
+  } | ${SUDO} tee /etc/amnezia/amneziawg/amn0.conf &> /dev/null
+
+  echo "::: Server config generated."
+}
+
 confNetwork() {
   # Enable forwarding of internet traffic
   echo 'net.ipv4.ip_forward=1' \
@@ -3652,6 +3843,9 @@ restartServices() {
       elif [[ "${VPN}" == "wireguard" ]]; then
         ${SUDO} systemctl enable wg-quick@wg0.service &> /dev/null
         ${SUDO} systemctl restart wg-quick@wg0.service
+      elif [[ "${VPN}" == "amneziawg" ]]; then
+        ${SUDO} systemctl enable awg-quick@wg0.service &> /dev/null
+        ${SUDO} systemctl restart awg-quick@wg0.service
       fi
 
       ;;
@@ -3664,6 +3858,10 @@ restartServices() {
         ${SUDO} rc-update add wg-quick default &> /dev/null
         ${SUDO} rc-service -s wg-quick restart
         ${SUDO} rc-service -N wg-quick start
+      elif [[ "${VPN}" == 'amneziawg' ]]; then
+        ${SUDO} rc-update add awg-quick default &> /dev/null
+        ${SUDO} rc-service -s awg-quick restart
+        ${SUDO} rc-service -N awg-quick start
       fi
 
       ;;

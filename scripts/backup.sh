@@ -63,6 +63,21 @@ backup_wireguard() {
   echo -e "#migrating-pivpn-wireguard"
 }
 
+backup_amnezia() {
+  wireguarddir=/etc/amnezia/amneziawg
+  configsdir="${install_home}/configs"
+  backupzip="${date}-pivpnwgbackup.tgz"
+
+  checkbackupdir
+  tar czpf "${install_home}/${backupdir}/${backupzip}" "${wireguarddir}" \
+    "${configsdir}" > /dev/null 2>&1
+
+  echo -e "Backup created in ${install_home}/${backupdir}/${backupzip} "
+  echo -e "To restore the backup, follow instructions at:"
+  echo -ne "https://docs.pivpn.io/wireguard/"
+  echo -e "#migrating-pivpn-wireguard"
+}
+
 ### Script
 if [[ -r "${setupConfigDir}/wireguard/${setupVarsFile}" ]] \
   && [[ -r "${setupConfigDir}/openvpn/${setupVarsFile}" ]]; then
@@ -124,6 +139,8 @@ fi
 
 if [[ "${VPN}" == "wireguard" ]]; then
   backup_wireguard
+if [[ "${VPN}" == "amneziawg" ]]; then
+  backup_amnezia
 else
   backup_openvpn
 fi
