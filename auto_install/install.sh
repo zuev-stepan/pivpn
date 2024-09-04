@@ -3470,6 +3470,20 @@ confAmnezia() {
     echo "ListenPort = ${pivpnPORT}"
   } | ${SUDO} tee /etc/amnezia/amneziawg/wg0.conf &> /dev/null
 
+  {
+      echo "Jc = $(shuf -i 3-10 -n 1)"
+      echo "Jmin = $(shuf -i 25-75 -n 1)"
+      echo "Jmax = $(shuf -i 900-1100 -n 1)"
+      echo "S1 = $(shuf -i 15-50 -n 1)"
+      echo "S2 = $(shuf -i 107-150 -n 1)"
+      echo "H1 = $(shuf -i 5-2147483647 -n 1)"
+      echo "H2 = ${shuf -i 5-2147483647 -n 1}"
+      echo "H3 = ${shuf -i 5-2147483647 -n 1}"
+      echo "H4 = ${shuf -i 5-2147483647 -n 1}"
+  } | ${SUDO} tee /etc/amnezia/amneziawg/vars.txt &> /dev/null
+
+  ${SUDO} cat /etc/amnezia/amneziawg/vars.txt >> ${SUDO} tee /etc/amnezia/amneziawg/wg0.conf &> /dev/null
+
   echo "::: Server config generated."
 }
 

@@ -175,6 +175,8 @@ UNUSED_IPV4_HEX="$(decIPv4ToHex "${UNUSED_IPV4_DEC}")"
     echo
   fi
 
+  cat vars.txt
+
   echo
   echo '[Peer]'
   echo "PublicKey = $(cat keys/server_pub)"
