@@ -3482,7 +3482,7 @@ confAmnezia() {
     echo "H4 = $(shuf -i 5-2147483647 -n 1)"
   } | ${SUDO} tee /etc/amnezia/amneziawg/vars.txt &> /dev/null
 
-  ${SUDO} cat /etc/amnezia/amneziawg/vars.txt | ${SUDO} tee /etc/amnezia/amneziawg/wg0.conf &> /dev/null
+  ${SUDO} cat /etc/amnezia/amneziawg/vars.txt >> /etc/amnezia/amneziawg/wg0.conf
 
   echo "::: Server config generated."
 }
